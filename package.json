@@ -5,6 +5,7 @@
   "description": "BLE tracker platform prototype: webhook ingest + geofence/movement rules engine + live map dashboard",
   "type": "module",
   "scripts": {
+    "build": "node scripts/gen-dashboard.js",
     "start": "node server.js",
     "dev": "node --watch server.js"
   },

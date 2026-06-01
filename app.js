@@ -1,6 +1,7 @@
 import express from 'express';
 import { getStore } from './store.js';
 import { evaluate } from './rules.js';
+import { DASHBOARD_HTML } from './dashboard.js';
 
 export const app = express();
 app.use(express.json());
@@ -21,7 +22,9 @@ app.use((req, res, next) => {
   res.set('WWW-Authenticate', 'Basic realm="ToolTrace"').status(401).send('Authentication required');
 });
 
-app.use(express.static('public'));
+// Dashboard — served from the function (after auth), not as a CDN static file,
+// so the password actually protects it.
+app.get('/', (req, res) => res.type('html').send(DASHBOARD_HTML));
 
 // Ensure the store is initialised before any request is handled. On serverless
 // this runs once per warm instance; the promise is cached in store.js.
