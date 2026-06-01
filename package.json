@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/gen-dashboard.js",
-    "start": "node server.js",
-    "dev": "node --watch server.js"
+    "start": "node local.js",
+    "dev": "node --watch local.js"
   },
   "dependencies": {
     "express": "^4.21.2",
