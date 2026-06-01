@@ -94,6 +94,25 @@ app.get('/api/alerts', (req, res) => {
   res.json(db.prepare('SELECT * FROM alerts ORDER BY id DESC LIMIT 50').all());
 });
 
+// Register a new tag up front (before it has ever pinged). deviceId is the ID
+// printed on the SpaceTag. Geofence is optional — set it now or later.
+app.post('/api/assets', (req, res) => {
+  const b = req.body || {};
+  const deviceId = (b.device_id || '').trim();
+  if (!deviceId) return res.status(400).json({ message: 'device_id is required' });
+  const exists = db.prepare('SELECT device_id FROM assets WHERE device_id = ?').get(deviceId);
+  if (exists) return res.status(409).json({ message: 'a tag with that ID already exists' });
+
+  db.prepare(`INSERT INTO assets (device_id, name, site, fence_lat, fence_lng, fence_radius_m)
+              VALUES (?,?,?,?,?,?)`).run(
+    deviceId,
+    (b.name || '').trim() || `Tag ${deviceId}`,
+    (b.site || '').trim() || null,
+    b.fence_lat ?? null, b.fence_lng ?? null, b.fence_radius_m ?? null
+  );
+  res.status(201).json(db.prepare('SELECT * FROM assets WHERE device_id = ?').get(deviceId));
+});
+
 // Update an asset (name/site, geofence, stolen mode).
 app.put('/api/assets/:id', (req, res) => {
   const a = db.prepare('SELECT * FROM assets WHERE device_id = ?').get(req.params.id);
