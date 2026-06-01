@@ -113,6 +113,53 @@ app.post('/api/assets', (req, res) => {
   res.status(201).json(db.prepare('SELECT * FROM assets WHERE device_id = ?').get(deviceId));
 });
 
+// Bulk import — onboard a whole crate of tags at once from CSV text.
+// Header row optional. Columns: device_id, name, site, fence_radius_m
+// (fence centre, if a radius is given, defaults to the dashboard's choice via
+// fence_lat/fence_lng if supplied per-row; otherwise radius is ignored).
+app.post('/api/assets/import', (req, res) => {
+  const csv = String(req.body?.csv || '').trim();
+  if (!csv) return res.status(400).json({ message: 'csv text is required' });
+
+  const lines = csv.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  // Drop a header row if the first cell isn't a plausible device id.
+  if (lines.length && /device|tag|id/i.test(lines[0].split(',')[0]) && lines[0].split(',').length > 1) {
+    lines.shift();
+  }
+
+  const insert = db.prepare(`INSERT INTO assets (device_id, name, site, fence_lat, fence_lng, fence_radius_m)
+                             VALUES (?,?,?,?,?,?)`);
+  const results = { added: 0, skipped: 0, errors: [] };
+  for (const line of lines) {
+    const [id, name, site, radius, flat, flng] = line.split(',').map((c) => (c ?? '').trim());
+    const deviceId = (id || '').trim();
+    if (!deviceId) { results.skipped++; continue; }
+    if (db.prepare('SELECT device_id FROM assets WHERE device_id = ?').get(deviceId)) {
+      results.skipped++; results.errors.push(`${deviceId}: already exists`); continue;
+    }
+    const r = parseFloat(radius);
+    const la = parseFloat(flat), lo = parseFloat(flng);
+    insert.run(
+      deviceId, name || `Tag ${deviceId}`, site || null,
+      Number.isFinite(la) ? la : null,
+      Number.isFinite(lo) ? lo : null,
+      Number.isFinite(r) ? r : null
+    );
+    results.added++;
+  }
+  res.status(201).json(results);
+});
+
+// Delete a tag and all its data.
+app.delete('/api/assets/:id', (req, res) => {
+  const a = db.prepare('SELECT device_id FROM assets WHERE device_id = ?').get(req.params.id);
+  if (!a) return res.status(404).json({ message: 'not found' });
+  db.prepare('DELETE FROM locations WHERE device_id = ?').run(req.params.id);
+  db.prepare('DELETE FROM alerts WHERE device_id = ?').run(req.params.id);
+  db.prepare('DELETE FROM assets WHERE device_id = ?').run(req.params.id);
+  res.json({ deleted: req.params.id });
+});
+
 // Update an asset (name/site, geofence, stolen mode).
 app.put('/api/assets/:id', (req, res) => {
   const a = db.prepare('SELECT * FROM assets WHERE device_id = ?').get(req.params.id);

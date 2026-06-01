@@ -43,7 +43,12 @@
   .addtag { display:flex; flex-direction:column; gap:6px; }
   .addtag input { font:inherit; background:#141c28; border:1px solid var(--line); color:var(--txt);
                   padding:7px 9px; border-radius:7px; width:100%; }
-  .addtag input:focus { outline:none; border-color:var(--accent); }
+  .addtag input:focus, .addtag textarea:focus { outline:none; border-color:var(--accent); }
+  .addtag textarea { font:13px/1.4 ui-monospace,Menlo,monospace; background:#141c28;
+                     border:1px solid var(--line); color:var(--txt); padding:7px 9px; border-radius:7px; width:100%; resize:vertical; }
+  .asset .acts { display:flex; gap:6px; margin-top:6px; }
+  .asset .acts button { font-size:11px; padding:3px 8px; }
+  .asset .acts .del:hover { border-color:var(--red); color:#fca5a5; }
   .fencerow { display:flex; gap:6px; }
   .fencerow input { flex:1; }
   #t_msg.ok { color:var(--green); } #t_msg.err { color:var(--red); }
@@ -83,6 +88,15 @@
         <button onclick="addTag()">Add tag</button>
         <div id="t_msg" class="meta"></div>
       </div>
+      <details style="margin-top:10px">
+        <summary style="cursor:pointer;color:var(--mut);font-size:12px">Bulk import (CSV)</summary>
+        <div class="addtag" style="margin-top:8px">
+          <div class="meta" style="color:var(--mut)">One tag per line: <code>device_id, name, site, radius_m</code></div>
+          <textarea id="t_csv" rows="4" placeholder="SPACETAG-001, Makita drill, Greenfield, 250&#10;SPACETAG-002, DeWalt saw, Greenfield"></textarea>
+          <button onclick="importCsv()">Import tags</button>
+          <div id="t_imsg" class="meta"></div>
+        </div>
+      </details>
     </div>
 
     <div class="section scroll" style="max-height:240px">
@@ -131,6 +145,10 @@ function renderAssets(assets) {
         <span class="badge ${a.stolen_mode?'stolen':''}">${a.stolen_mode?'STOLEN':'normal'}</span>
       </div>
       <div class="meta">${esc(a.site||'—')} · ${a.last? 'last seen '+ago(a.last.received_at) : 'no reports yet'}</div>
+      <div class="acts">
+        <button onclick="editTag(event,'${a.device_id}')" class="alt">Edit</button>
+        <button onclick="deleteTag(event,'${a.device_id}')" class="alt del">Delete</button>
+      </div>
     </div>`).join('');
 }
 
@@ -198,6 +216,38 @@ async function addTag(){
   }
 }
 function val(id){ return document.getElementById(id).value; }
+
+async function importCsv(){
+  const msg = document.getElementById('t_imsg');
+  const csv = val('t_csv');
+  const r = await fetch('/api/assets/import', { method:'POST',
+    headers:{'content-type':'application/json'}, body: JSON.stringify({ csv }) });
+  const d = await r.json();
+  if (r.ok) {
+    msg.className = 'meta ok';
+    msg.textContent = `Imported ${d.added} tag(s)` + (d.skipped ? `, skipped ${d.skipped}.` : '.');
+    document.getElementById('t_csv').value = ''; refresh();
+  } else { msg.className = 'meta err'; msg.textContent = d.message || 'Import failed.'; }
+}
+
+async function editTag(e, id){
+  e.stopPropagation();
+  const a = (await (await fetch('/api/assets')).json()).find(x => x.device_id === id);
+  if (!a) return;
+  const name = prompt('Tag name:', a.name); if (name === null) return;
+  const site = prompt('Site / owner:', a.site || ''); if (site === null) return;
+  await fetch('/api/assets/'+id, { method:'PUT', headers:{'content-type':'application/json'},
+    body: JSON.stringify({ name, site }) });
+  refresh();
+}
+
+async function deleteTag(e, id){
+  e.stopPropagation();
+  if (!confirm('Delete this tag and all its location history & alerts?')) return;
+  await fetch('/api/assets/'+id, { method:'DELETE' });
+  if (selected === id) selected = null;
+  refresh();
+}
 
 function select(id){ selected = id; refresh(); }
 async function sim(step){
