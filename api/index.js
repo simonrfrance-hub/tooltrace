@@ -1,3 +1,6 @@
-// Vercel serverless entry. The Express app is itself a (req, res) handler.
+// Vercel serverless entry. Wrap the Express app in an explicit handler function
+// so Vercel's export validator never mis-detects the app instance.
 import { app } from '../app.js';
-export default app;
+export default function handler(req, res) {
+  return app(req, res);
+}
