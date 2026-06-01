@@ -4,6 +4,23 @@ import { evaluate } from './rules.js';
 
 export const app = express();
 app.use(express.json());
+
+// Dashboard auth. Everything is gated behind a password EXCEPT:
+//   - /api/webhook : the vendor can't log in; it authenticates with its token
+//   - /api/health  : public liveness check
+// If DASHBOARD_PASSWORD is unset (local dev), auth is disabled.
+const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD || '';
+app.use((req, res, next) => {
+  if (req.path === '/api/webhook' || req.path === '/api/health') return next();
+  if (!DASHBOARD_PASSWORD) return next();
+  const [scheme, encoded] = (req.get('authorization') || '').split(' ');
+  if (scheme === 'Basic' && encoded) {
+    const pass = Buffer.from(encoded, 'base64').toString().split(':').slice(1).join(':');
+    if (pass === DASHBOARD_PASSWORD) return next();
+  }
+  res.set('WWW-Authenticate', 'Basic realm="ToolTrace"').status(401).send('Authentication required');
+});
+
 app.use(express.static('public'));
 
 // Ensure the store is initialised before any request is handled. On serverless
