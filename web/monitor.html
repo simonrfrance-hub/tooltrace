@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ToolTrace — Factory Test Monitor</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  :root { --bg:#0f1419; --panel:#1a2230; --line:#2a3548; --txt:#e6edf3; --mut:#8b98a9; --green:#22c55e; --accent:#3b82f6; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--txt); }
+  header { padding:16px 20px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+  header h1 { margin:0; font-size:18px; }
+  header .sub { color:var(--mut); font-size:13px; margin-top:3px; }
+  .pill { font-size:12px; padding:4px 10px; border-radius:99px; background:#141c28; border:1px solid var(--line); color:var(--mut); }
+  .pill.live { color:var(--green); border-color:rgba(34,197,94,.4); }
+  .wrap { display:flex; gap:16px; padding:16px 20px; flex-wrap:wrap; }
+  #map { flex:1 1 420px; height:360px; border-radius:10px; overflow:hidden; min-width:300px; }
+  .panel { flex:1 1 420px; min-width:300px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); }
+  th { color:var(--mut); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.05em; }
+  td.mono { font-family:ui-monospace,Menlo,monospace; font-size:12px; }
+  .empty { color:var(--mut); padding:20px 8px; }
+  .count { font-size:32px; font-weight:700; }
+</style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>ToolTrace — Factory Test Monitor</h1>
+      <div class="sub">Read-only. Push test tags to the webhook and watch them appear here live.</div>
+    </div>
+    <div>
+      <span class="pill live" id="status">● live</span>
+      <span class="pill" id="storage"></span>
+    </div>
+  </header>
+  <div class="wrap">
+    <div id="map"></div>
+    <div class="panel">
+      <div><span class="count" id="count">0</span> <span style="color:var(--mut)">pings received</span> · <span class="sub" id="updated"></span></div>
+      <table>
+        <thead><tr><th>Device ID</th><th>Lat, Lng</th><th>Reported</th></tr></thead>
+        <tbody id="rows"><tr><td colspan="3" class="empty">Waiting for the first ping…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const token = decodeURIComponent(location.pathname.split('/monitor/')[1] || '');
+let map, markers = {};
+function init(){
+  map = L.map('map').setView([0,0], 2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap', maxZoom:19 }).addTo(map);
+  tick(); setInterval(tick, 3000);
+}
+async function tick(){
+  try {
+    const r = await fetch('/api/monitor/data?token=' + encodeURIComponent(token));
+    if (!r.ok) { document.getElementById('status').textContent = '● invalid token'; document.getElementById('status').className='pill'; return; }
+    const d = await r.json();
+    document.getElementById('storage').textContent = 'storage: ' + d.storage;
+    document.getElementById('count').textContent = d.count;
+    document.getElementById('updated').textContent = 'updated ' + new Date().toLocaleTimeString();
+    render(d.pings);
+  } catch(e) { /* keep trying */ }
+}
+function render(pings){
+  const tb = document.getElementById('rows');
+  if (!pings.length){ tb.innerHTML = '<tr><td colspan="3" class="empty">Waiting for the first ping…</td></tr>'; return; }
+  tb.innerHTML = pings.map(p => `<tr>
+      <td class="mono">${esc(p.device_id)}${p.name? ' <span style="color:var(--mut)">('+esc(p.name)+')</span>':''}</td>
+      <td class="mono">${(+p.latitude).toFixed(5)}, ${(+p.longitude).toFixed(5)}</td>
+      <td>${ago(p.received_at)}</td></tr>`).join('');
+  const bounds = [];
+  for (const p of pings){
+    const ll = [+p.latitude, +p.longitude];
+    bounds.push(ll);
+    if (markers[p.device_id]) markers[p.device_id].setLatLng(ll);
+    else markers[p.device_id] = L.marker(ll).addTo(map).bindPopup(esc(p.device_id));
+  }
+  if (bounds.length) map.fitBounds(bounds, { maxZoom:15, padding:[40,40] });
+}
+function esc(s){ return String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function ago(t){
+  if(!t) return '—';
+  let iso = String(t).replace(' ','T'); if(!/[zZ]|[+-]\d\d:?\d\d$/.test(iso)) iso += 'Z';
+  const s = Math.max(0,(Date.now()-Date.parse(iso))/1000);
+  if(Number.isNaN(s)) return '—';
+  if(s<60) return Math.round(s)+'s ago';
+  if(s<3600) return Math.round(s/60)+'m ago';
+  return Math.round(s/3600)+'h ago';
+}
+init();
+</script>
+</body>
+</html>

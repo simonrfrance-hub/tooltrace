@@ -75,6 +75,11 @@ function memoryStore() {
     },
     async insertAlert(a) { alerts.push({ id: ++alertSeq, ...a, created_at: nowIso() }); },
     async recentAlerts() { return [...alerts].reverse().slice(0, 50); },
+    async recentPings(limit = 50) {
+      return locations.slice(-limit).reverse()
+        .map((l) => ({ device_id: l.device_id, name: assets.get(l.device_id)?.name ?? null,
+          latitude: l.latitude, longitude: l.longitude, timestamp: l.timestamp, received_at: l.received_at }));
+    },
   };
 }
 
@@ -177,6 +182,13 @@ async function pgStore() {
     async recentAlerts() {
       const { rows } = await q('SELECT * FROM alerts ORDER BY id DESC LIMIT 50');
       return rows.map((r) => ({ ...r, created_at: iso(r.created_at) }));
+    },
+    async recentPings(limit = 50) {
+      const { rows } = await q(
+        `SELECT l.device_id, a.name, l.latitude, l.longitude, l.timestamp, l.received_at
+         FROM locations l LEFT JOIN assets a ON a.device_id = l.device_id
+         ORDER BY l.id DESC LIMIT $1`, [limit]);
+      return rows.map((r) => ({ ...r, received_at: iso(r.received_at) }));
     },
   };
 }

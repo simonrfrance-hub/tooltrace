@@ -1,7 +1,7 @@
 import express from 'express';
 import { getStore } from './store.js';
 import { evaluate } from './rules.js';
-import { DASHBOARD_HTML } from './dashboard.js';
+import { DASHBOARD_HTML, MONITOR_HTML } from './dashboard.js';
 
 export const app = express();
 app.use(express.json());
@@ -13,7 +13,12 @@ app.use(express.json());
 const DASHBOARD_USER = process.env.DASHBOARD_USER || '';
 const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD || '';
 app.use((req, res, next) => {
-  if (req.path === '/api/webhook' || req.path === '/api/health') return next();
+  // Public (not behind the dashboard login):
+  //   - the webhook (token-auth, for the vendor/factory to POST tags)
+  //   - the read-only monitor page + its data API (token-gated, for factory testing)
+  //   - health
+  if (req.path.startsWith('/api/webhook') || req.path === '/api/health' ||
+      req.path.startsWith('/monitor') || req.path.startsWith('/api/monitor')) return next();
   if (!DASHBOARD_PASSWORD) return next();
   const [scheme, encoded] = (req.get('authorization') || '').split(' ');
   if (scheme === 'Basic' && encoded) {
@@ -65,8 +70,13 @@ async function ingestPing(store, p) {
 }
 
 // ---- Webhook (vendor format, WebHook Push doc v1.1) ----------------------
-app.post('/api/webhook', async (req, res) => {
-  if (req.get('x-webhook-token') !== WEBHOOK_TOKEN) return res.status(401).json({ code: 401, message: 'bad token' });
+// The token may be supplied three ways so any vendor system can authenticate:
+//   - header  x-webhook-token: <token>
+//   - URL path /api/webhook/<token>   (easiest — just one callback URL, no headers)
+//   - query   /api/webhook?token=<token>
+app.post(['/api/webhook', '/api/webhook/:token'], async (req, res) => {
+  const token = req.params.token || req.query.token || req.get('x-webhook-token');
+  if (token !== WEBHOOK_TOKEN) return res.status(401).json({ code: 401, message: 'bad token' });
   const data = Array.isArray(req.body?.data) ? req.body.data : [];
   if (data.length > 200) return res.status(413).json({ code: 413, message: 'batch too large' });
   let ingested = 0;
@@ -158,6 +168,16 @@ app.post('/api/simulate', async (req, res) => {
     accuracy: step === 'jitter' ? '8' : '25', timestamp: now, datePublished: now,
   });
   res.json(result);
+});
+
+// ---- Factory test monitor (read-only, token-gated, no dashboard login) ----
+// Share /monitor/<WEBHOOK_TOKEN> with the factory so they can watch their test
+// pings arrive live without needing the dashboard password.
+app.get('/monitor/:token?', (req, res) => res.type('html').send(MONITOR_HTML));
+app.get('/api/monitor/data', async (req, res) => {
+  if ((req.query.token || '') !== WEBHOOK_TOKEN) return res.status(401).json({ message: 'bad token' });
+  const pings = await req.store.recentPings(50);
+  res.json({ storage: req.store.kind, count: pings.length, pings });
 });
 
 // Health/diagnostics — also reveals which storage backend is live.
