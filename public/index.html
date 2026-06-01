@@ -268,7 +268,11 @@ async function toggleStolen(){
 function esc(s){ return String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function ago(t){
   if(!t) return '—';
-  const s = Math.max(0,(Date.now()-Date.parse(t.replace(' ','T')+'Z'))/1000);
+  // Accept ISO ("...Z") or SQLite-style ("YYYY-MM-DD HH:MM:SS") timestamps.
+  let iso = String(t).replace(' ', 'T');
+  if(!/[zZ]|[+-]\d\d:?\d\d$/.test(iso)) iso += 'Z';
+  const s = Math.max(0,(Date.now()-Date.parse(iso))/1000);
+  if(Number.isNaN(s)) return '—';
   if(s<60) return Math.round(s)+'s ago';
   if(s<3600) return Math.round(s/60)+'m ago';
   return Math.round(s/3600)+'h ago';
