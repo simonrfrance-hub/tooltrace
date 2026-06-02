@@ -84,6 +84,22 @@ app.post(['/api/webhook', '/api/webhook/:token'], async (req, res) => {
   res.json({ code: 200, message: 'success', ingested });
 });
 
+// Friendly GET on the webhook URL so a browser visit confirms it's live
+// (webhooks are POST-only; a plain browser GET would otherwise 404).
+app.get(['/api/webhook', '/api/webhook/:token'], (req, res) => {
+  const token = req.params.token || req.query.token || req.get('x-webhook-token');
+  if (token !== WEBHOOK_TOKEN) {
+    return res.status(401).json({ ok: false, message: 'ToolTrace webhook is live, but this token is missing or invalid. Send location data as an HTTP POST to this URL.' });
+  }
+  res.json({
+    ok: true,
+    message: 'ToolTrace webhook is live and ready. Send location data as an HTTP POST (JSON) to this same URL.',
+    method: 'POST',
+    contentType: 'application/json',
+    bodyExample: { code: 200, message: 'success', data: [{ deviceId: 'unique-id', latitude: '22.5431', longitude: '114.0579', altitude: '10', timestamp: '2026-06-02T09:00:00Z', accuracy: '15', datePublished: '2026-06-02T09:00:05Z' }] },
+  });
+});
+
 // ---- Read APIs -----------------------------------------------------------
 app.get('/api/assets', async (req, res) => res.json(await req.store.listAssets()));
 app.get('/api/assets/:id/track', async (req, res) => res.json(await req.store.track(req.params.id)));
