@@ -9,9 +9,11 @@ const read = (f) => readFileSync(fileURLToPath(new URL('web/' + f, root)), 'utf8
 
 const dashboard = read('index.html');
 const monitor = read('monitor.html');
+const howItWorks = read('how-it-works.html');
 const out =
   `// AUTO-GENERATED from web/*.html by scripts/gen-dashboard.js — do not edit.\n` +
   `export const DASHBOARD_HTML = ${JSON.stringify(dashboard)};\n` +
-  `export const MONITOR_HTML = ${JSON.stringify(monitor)};\n`;
+  `export const MONITOR_HTML = ${JSON.stringify(monitor)};\n` +
+  `export const HOWITWORKS_HTML = ${JSON.stringify(howItWorks)};\n`;
 writeFileSync(fileURLToPath(new URL('dashboard.js', root)), out);
-console.log(`dashboard.js written (dashboard ${dashboard.length}B, monitor ${monitor.length}B)`);
+console.log(`dashboard.js written (dashboard ${dashboard.length}B, monitor ${monitor.length}B, how-it-works ${howItWorks.length}B)`);

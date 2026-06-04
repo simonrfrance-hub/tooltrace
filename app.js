@@ -1,7 +1,7 @@
 import express from 'express';
 import { getStore } from './store.js';
 import { evaluate } from './rules.js';
-import { DASHBOARD_HTML, MONITOR_HTML } from './dashboard.js';
+import { DASHBOARD_HTML, MONITOR_HTML, HOWITWORKS_HTML } from './dashboard.js';
 
 export const app = express();
 app.use(express.json());
@@ -19,7 +19,7 @@ app.use((req, res, next) => {
   //   - health
   if (req.path.startsWith('/api/webhook') || req.path === '/api/health' ||
       req.path.startsWith('/monitor') || req.path.startsWith('/api/monitor') ||
-      req.path === '/tracking-animation.svg') return next();
+      req.path === '/tracking-animation.svg' || req.path === '/how-it-works') return next();
   if (!DASHBOARD_PASSWORD) return next();
   const [scheme, encoded] = (req.get('authorization') || '').split(' ');
   if (scheme === 'Basic' && encoded) {
@@ -75,6 +75,9 @@ const TRACKING_SVG = `<svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/s
 </svg>`;
 app.get('/tracking-animation.svg', (req, res) =>
   res.type('image/svg+xml').set('Cache-Control', 'public, max-age=86400').send(TRACKING_SVG));
+
+// Public "How it works" marketing page (features the tracking animation).
+app.get('/how-it-works', (req, res) => res.type('html').send(HOWITWORKS_HTML));
 
 // Ensure the store is initialised before any request is handled. On serverless
 // this runs once per warm instance; the promise is cached in store.js.

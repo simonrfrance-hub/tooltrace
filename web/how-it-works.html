@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>How it works — Localizit</title>
+<meta name="description" content="How Localizit works: attach a tracker, see live location, set geofences and get instant alerts — all on one dashboard." />
+<style>
+  :root { --bg:#0f1419; --panel:#1a2230; --line:#2a3548; --txt:#e6edf3; --mut:#8b98a9;
+          --accent:#0284c7; --sky:#38bdf8; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+         background:var(--bg); color:var(--txt); }
+  a { color:inherit; }
+  .wrap { max-width:1080px; margin:0 auto; padding:0 24px; }
+  header { border-bottom:1px solid var(--line); }
+  header .wrap { display:flex; align-items:center; justify-content:space-between; height:64px; }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:-.01em; font-size:18px; }
+  .brand .dot { width:26px; height:26px; border-radius:7px; background:linear-gradient(135deg,var(--accent),var(--sky)); }
+  .brand b { color:var(--sky); }
+  .cta { background:var(--accent); color:#fff; text-decoration:none; padding:9px 16px; border-radius:99px; font-weight:600; font-size:14px; }
+  .cta:hover { background:#0369a1; }
+
+  /* Hero */
+  .hero { display:grid; gap:40px; align-items:center; padding:72px 0; }
+  @media(min-width:820px){ .hero{ grid-template-columns:1.1fr .9fr; } }
+  .eyebrow { color:var(--sky); font-weight:700; font-size:13px; letter-spacing:.12em; text-transform:uppercase; }
+  h1 { font-size:clamp(34px,5vw,52px); line-height:1.05; margin:14px 0 0; letter-spacing:-.02em; }
+  .lead { color:var(--mut); font-size:19px; margin-top:18px; max-width:34ch; }
+  .hero-art { display:flex; justify-content:center; }
+  .hero-art svg { width:100%; max-width:380px; height:auto; }
+
+  /* Steps */
+  .steps { padding:24px 0 88px; }
+  .steps h2 { font-size:clamp(26px,4vw,36px); letter-spacing:-.02em; margin:0 0 8px; }
+  .steps .sub { color:var(--mut); margin:0 0 36px; }
+  .grid { display:grid; gap:20px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:24px; }
+  .num { display:inline-grid; place-items:center; width:38px; height:38px; border-radius:10px;
+         background:linear-gradient(135deg,var(--accent),var(--sky)); font-weight:800; }
+  .card h3 { margin:16px 0 6px; font-size:18px; }
+  .card p { margin:0; color:var(--mut); font-size:15px; }
+
+  .band { background:var(--panel); border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+  .band .wrap { padding:56px 24px; text-align:center; }
+  .band h2 { font-size:clamp(24px,3.5vw,32px); margin:0; }
+  .band p { color:var(--mut); margin:12px 0 24px; }
+
+  footer .wrap { padding:28px 24px; color:var(--mut); font-size:13px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <a href="/how-it-works" class="brand" style="text-decoration:none"><span class="dot"></span>Localiz<b>it</b></a>
+      <a href="/" class="cta">Open dashboard</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- Hero -->
+    <section class="hero">
+      <div>
+        <div class="eyebrow">How it works</div>
+        <h1>Know where everything is, in real time</h1>
+        <p class="lead">Localizit turns any asset into a live location on your map — with geofences, movement rules and instant alerts.</p>
+        <p style="margin-top:24px"><a href="/" class="cta">See it live</a></p>
+      </div>
+      <div class="hero-art">
+        <!-- Live tracking animation -->
+        <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Localizit live tracking">
+          <defs>
+            <linearGradient id="lz-bg" x1="0" y1="0" x2="240" y2="240" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stop-color="#0284C7" stop-opacity="0.9"/>
+              <stop offset="1" stop-color="#05080f"/>
+            </linearGradient>
+            <pattern id="lz-grid" width="22" height="22" patternUnits="userSpaceOnUse">
+              <circle cx="2" cy="2" r="1" fill="rgba(255,255,255,0.10)"/>
+            </pattern>
+            <style>
+              .lz-route { stroke-dasharray: 3 7; animation: lz-dash 0.9s linear infinite; }
+              @keyframes lz-dash { to { stroke-dashoffset: -24; } }
+              .lz-ripple, .lz-ripple2 { transform-box: fill-box; transform-origin: center; animation: lz-ripple 2.6s ease-out infinite; }
+              .lz-ripple2 { animation-delay: 1.3s; }
+              @keyframes lz-ripple { 0% { opacity: .75; transform: scale(.55); } 100% { opacity: 0; transform: scale(1.4); } }
+              .lz-blink { animation: lz-blink 1.5s steps(1, end) infinite; }
+              @keyframes lz-blink { 0%, 100% { opacity: 1; } 50% { opacity: .12; } }
+              @media (prefers-reduced-motion: reduce) { .lz-route, .lz-ripple, .lz-ripple2, .lz-blink { animation: none; } }
+            </style>
+          </defs>
+          <rect width="240" height="240" rx="20" fill="url(#lz-bg)"/>
+          <rect width="240" height="240" rx="20" fill="url(#lz-grid)"/>
+          <path class="lz-route" d="M40 182 C 84 130, 120 196, 168 114" fill="none" stroke="#bae6fd" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="40" cy="182" r="5" fill="#ffffff"/>
+          <circle class="lz-blink" cx="104" cy="166" r="5" fill="#38bdf8"/>
+          <g transform="translate(168,114)" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">
+            <path d="M0 0 C -15 -20 -17 -30 -17 -34 a17 17 0 0 1 34 0 C 17 -30 15 -20 0 0 z" fill="rgba(255,255,255,0.18)"/>
+            <circle cx="0" cy="-32" r="6.5" fill="#38bdf8" stroke="none"/>
+          </g>
+          <circle class="lz-ripple" cx="168" cy="116" r="14" fill="none" stroke="#38bdf8" stroke-width="2"/>
+          <circle class="lz-ripple2" cx="168" cy="116" r="14" fill="none" stroke="#38bdf8" stroke-width="2"/>
+          <g fill="#ffffff"><circle cx="200" cy="60" r="3"/><circle cx="58" cy="70" r="3"/></g>
+        </svg>
+      </div>
+    </section>
+
+    <!-- Steps -->
+    <section class="steps">
+      <h2>Four steps to full visibility</h2>
+      <p class="sub">From the box to live on your map in minutes.</p>
+      <div class="grid">
+        <div class="card"><span class="num">1</span><h3>Attach a tracker</h3><p>Fit a Localizit tracker to a vehicle, tool, container or any asset you need to keep eyes on.</p></div>
+        <div class="card"><span class="num">2</span><h3>It reports its location</h3><p>The tracker sends its position over the cellular network — no wiring, no fixed internet required.</p></div>
+        <div class="card"><span class="num">3</span><h3>Set geofences &amp; rules</h3><p>Draw zones and define rules for movement, arrivals and departures that matter to you.</p></div>
+        <div class="card"><span class="num">4</span><h3>See it &amp; get alerted</h3><p>Watch everything live on one dashboard and get instant alerts the moment something happens.</p></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="band">
+    <div class="wrap">
+      <h2>Ready to see your assets on the map?</h2>
+      <p>Open the live dashboard and start tracking.</p>
+      <a href="/" class="cta">Open dashboard</a>
+    </div>
+  </div>
+
+  <footer>
+    <div class="wrap">
+      <span>Localizit — live asset &amp; location tracking</span>
+      <span>A Take 2 Technology company</span>
+    </div>
+  </footer>
+</body>
+</html>
