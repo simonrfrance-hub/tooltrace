@@ -29,7 +29,7 @@ app.use((req, res, next) => {
     // If a username is configured, require it too; otherwise accept any username.
     if ((!DASHBOARD_USER || user === DASHBOARD_USER) && pass === DASHBOARD_PASSWORD) return next();
   }
-  res.set('WWW-Authenticate', 'Basic realm="ToolTrace"').status(401).send('Authentication required');
+  res.set('WWW-Authenticate', 'Basic realm="Localizit"').status(401).send('Authentication required');
 });
 
 // Dashboard — served from the function (after auth), not as a CDN static file,
@@ -89,11 +89,11 @@ app.post(['/api/webhook', '/api/webhook/:token'], async (req, res) => {
 app.get(['/api/webhook', '/api/webhook/:token'], (req, res) => {
   const token = req.params.token || req.query.token || req.get('x-webhook-token');
   if (token !== WEBHOOK_TOKEN) {
-    return res.status(401).json({ ok: false, message: 'ToolTrace webhook is live, but this token is missing or invalid. Send location data as an HTTP POST to this URL.' });
+    return res.status(401).json({ ok: false, message: 'Localizit webhook is live, but this token is missing or invalid. Send location data as an HTTP POST to this URL.' });
   }
   res.json({
     ok: true,
-    message: 'ToolTrace webhook is live and ready. Send location data as an HTTP POST (JSON) to this same URL.',
+    message: 'Localizit webhook is live and ready. Send location data as an HTTP POST (JSON) to this same URL.',
     method: 'POST',
     contentType: 'application/json',
     bodyExample: { code: 200, message: 'success', data: [{ deviceId: 'unique-id', latitude: '22.5431', longitude: '114.0579', altitude: '10', timestamp: '2026-06-02T09:00:00Z', accuracy: '15', datePublished: '2026-06-02T09:00:05Z' }] },
