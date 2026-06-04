@@ -18,7 +18,8 @@ app.use((req, res, next) => {
   //   - the read-only monitor page + its data API (token-gated, for factory testing)
   //   - health
   if (req.path.startsWith('/api/webhook') || req.path === '/api/health' ||
-      req.path.startsWith('/monitor') || req.path.startsWith('/api/monitor')) return next();
+      req.path.startsWith('/monitor') || req.path.startsWith('/api/monitor') ||
+      req.path === '/tracking-animation.svg') return next();
   if (!DASHBOARD_PASSWORD) return next();
   const [scheme, encoded] = (req.get('authorization') || '').split(' ');
   if (scheme === 'Basic' && encoded) {
@@ -35,6 +36,45 @@ app.use((req, res, next) => {
 // Dashboard — served from the function (after auth), not as a CDN static file,
 // so the password actually protects it.
 app.get('/', (req, res) => res.type('html').send(DASHBOARD_HTML));
+
+// Brand "live tracking" animation (public). Embed anywhere with:
+//   <img src="/tracking-animation.svg" alt="Live tracking" width="320" height="320">
+// Recolour by swapping the hex values below.
+const TRACKING_SVG = `<svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Localizit live tracking">
+  <defs>
+    <linearGradient id="lz-bg" x1="0" y1="0" x2="240" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0284C7" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#05080f"/>
+    </linearGradient>
+    <pattern id="lz-grid" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="rgba(255,255,255,0.10)"/>
+    </pattern>
+    <style>
+      .lz-route { stroke-dasharray: 3 7; animation: lz-dash 0.9s linear infinite; }
+      @keyframes lz-dash { to { stroke-dashoffset: -24; } }
+      .lz-ripple, .lz-ripple2 { transform-box: fill-box; transform-origin: center; animation: lz-ripple 2.6s ease-out infinite; }
+      .lz-ripple2 { animation-delay: 1.3s; }
+      @keyframes lz-ripple { 0% { opacity: .75; transform: scale(.55); } 100% { opacity: 0; transform: scale(1.4); } }
+      .lz-blink { animation: lz-blink 1.5s steps(1, end) infinite; }
+      @keyframes lz-blink { 0%, 100% { opacity: 1; } 50% { opacity: .12; } }
+      @media (prefers-reduced-motion: reduce) { .lz-route, .lz-ripple, .lz-ripple2, .lz-blink { animation: none; } }
+    </style>
+  </defs>
+  <rect width="240" height="240" rx="20" fill="url(#lz-bg)"/>
+  <rect width="240" height="240" rx="20" fill="url(#lz-grid)"/>
+  <path class="lz-route" d="M40 182 C 84 130, 120 196, 168 114" fill="none" stroke="#bae6fd" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="40" cy="182" r="5" fill="#ffffff"/>
+  <circle class="lz-blink" cx="104" cy="166" r="5" fill="#38bdf8"/>
+  <g transform="translate(168,114)" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">
+    <path d="M0 0 C -15 -20 -17 -30 -17 -34 a17 17 0 0 1 34 0 C 17 -30 15 -20 0 0 z" fill="rgba(255,255,255,0.18)"/>
+    <circle cx="0" cy="-32" r="6.5" fill="#38bdf8" stroke="none"/>
+  </g>
+  <circle class="lz-ripple" cx="168" cy="116" r="14" fill="none" stroke="#38bdf8" stroke-width="2"/>
+  <circle class="lz-ripple2" cx="168" cy="116" r="14" fill="none" stroke="#38bdf8" stroke-width="2"/>
+  <g fill="#ffffff"><circle cx="200" cy="60" r="3"/><circle cx="58" cy="70" r="3"/></g>
+</svg>`;
+app.get('/tracking-animation.svg', (req, res) =>
+  res.type('image/svg+xml').set('Cache-Control', 'public, max-age=86400').send(TRACKING_SVG));
 
 // Ensure the store is initialised before any request is handled. On serverless
 // this runs once per warm instance; the promise is cached in store.js.
