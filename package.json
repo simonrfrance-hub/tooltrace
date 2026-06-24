@@ -1,8 +1,8 @@
 {
-  "name": "tooltrace",
+  "name": "localizit",
   "version": "0.1.0",
   "private": true,
-  "description": "BLE tracker platform prototype: webhook ingest + geofence/movement rules engine + live map dashboard",
+  "description": "Localizit — live asset tracking: webhook ingest + geofence/movement rules engine + live map dashboard",
   "type": "module",
   "scripts": {
     "build": "node scripts/gen-dashboard.js",
