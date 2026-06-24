@@ -19,7 +19,8 @@ app.use((req, res, next) => {
   //   - health
   if (req.path.startsWith('/api/webhook') || req.path === '/api/health' ||
       req.path.startsWith('/monitor') || req.path.startsWith('/api/monitor') ||
-      req.path === '/tracking-animation.svg' || req.path === '/how-it-works') return next();
+      req.path === '/tracking-animation.svg' || req.path === '/how-it-works' ||
+      req.path === '/robots.txt' || req.path === '/sitemap.xml') return next();
   if (!DASHBOARD_PASSWORD) return next();
   const [scheme, encoded] = (req.get('authorization') || '').split(' ');
   if (scheme === 'Basic' && encoded) {
@@ -78,6 +79,34 @@ app.get('/tracking-animation.svg', (req, res) =>
 
 // Public "How it works" marketing page (features the tracking animation).
 app.get('/how-it-works', (req, res) => res.type('html').send(HOWITWORKS_HTML));
+
+// SEO: robots.txt — only the public marketing page + brand asset are
+// crawlable; the password-gated dashboard at / (and /monitor) return 401
+// to crawlers anyway, but disallow them explicitly for good measure.
+app.get('/robots.txt', (req, res) =>
+  res.type('text/plain').set('Cache-Control', 'public, max-age=86400').send(
+    `User-agent: *
+Allow: /how-it-works$
+Allow: /tracking-animation.svg
+Disallow: /monitor
+Disallow: /api/
+Disallow: /
+
+Sitemap: https://localizit.com/sitemap.xml
+`));
+
+// SEO: sitemap.xml — single public URL for now.
+app.get('/sitemap.xml', (req, res) =>
+  res.type('application/xml').set('Cache-Control', 'public, max-age=86400').send(
+    `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://localizit.com/how-it-works</loc>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>
+`));
 
 // Ensure the store is initialised before any request is handled. On serverless
 // this runs once per warm instance; the promise is cached in store.js.
